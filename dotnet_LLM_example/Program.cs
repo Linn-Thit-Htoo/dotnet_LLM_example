@@ -1,40 +1,39 @@
 ﻿using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
-namespace dotnet_LLM_example
+namespace dotnet_LLM_example;
+
+public class Program
 {
-    public class Program
+    public static async Task Main(string[] args)
     {
-        public static async Task Main(string[] args)
+        var builder = Kernel.CreateBuilder();
+        builder.AddOllamaChatCompletion(
+            modelId: "llama2", // or "llama3"
+            endpoint: new Uri("http://localhost:11434")
+        );
+
+        var kernel = builder.Build();
+        var chatService = kernel.GetRequiredService<IChatCompletionService>();
+
+        var chatHistory = new ChatHistory();
+        chatHistory.AddSystemMessage("You are a helpful assistant.");
+
+        while (true)
         {
-            var builder = Kernel.CreateBuilder();
-            builder.AddOllamaChatCompletion(
-                modelId: "llama2", // or "llama3"
-                endpoint: new Uri("http://localhost:11434")
-            );
+            Console.Write("You: ");
+            var userMessage = Console.ReadLine();
 
-            var kernel = builder.Build();
-            var chatService = kernel.GetRequiredService<IChatCompletionService>();
+            if (string.IsNullOrWhiteSpace(userMessage))
+                break;
 
-            var chatHistory = new ChatHistory();
-            chatHistory.AddSystemMessage("You are a helpful assistant.");
+            chatHistory.AddUserMessage(userMessage);
 
-            while (true)
-            {
-                Console.Write("You: ");
-                var userMessage = Console.ReadLine();
+            var response = await chatService.GetChatMessageContentAsync(chatHistory);
 
-                if (string.IsNullOrWhiteSpace(userMessage))
-                    break;
+            Console.WriteLine($"\nBot: {response.Content}\n");
 
-                chatHistory.AddUserMessage(userMessage);
-
-                var response = await chatService.GetChatMessageContentAsync(chatHistory);
-
-                Console.WriteLine($"\nBot: {response.Content}\n");
-
-                chatHistory.AddAssistantMessage(response.Content!);
-            }
+            chatHistory.AddAssistantMessage(response.Content!);
         }
     }
 }
